@@ -154,7 +154,7 @@ function showInfo() {
 <b>Vigenère Cipher:</b> Uses a keyword to shift letters. Stronger than Caesar.<br>
 <b>Base64:</b> Encodes binary data into readable text. Not real encryption.<br>
 <b>XOR Cipher:</b> Uses a key to flip bits. Strong if used correctly.<br>
-<b>Playfair Cipher:</b> Encrypts digraphs (pairs of letters) using a 5x5 matrix. Advanced classical cipher.<br>`;
+<b>Playfair Cipher:</b> Encrypts pairs of letters using a 5x5 matrix. More secure than Caesar and Atbash.<br>`;
   document.getElementById("infoBox").innerHTML = info;
   document.getElementById("infoBox").classList.remove("hidden");
   document.getElementById("testBox").classList.add("hidden");
