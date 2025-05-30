@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptography Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        #inputText {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            font-size: 16px;
+            resize: vertical;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+        
+        #inputText:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        #algorithm {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            background: white;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .file-button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 100px;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #infoBox, #testBox {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .key-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Cute Cryptography Tool</h1>
+        <textarea id="inputText" placeholder="Enter or drop your text here..."></textarea>
+        <select id="algorithm">
+            <option value="caesar">Caesar Cipher (Simple)</option>
+            <option value="atbash">Atbash Cipher (Simple)</option>
+            <option value="reverse">Reverse Text (Simple)</option>
+            <option value="vigenere">Vigenère Cipher (Intermediate)</option>
+            <option value="base64">Base64 Encode/Decode (Intermediate)</option>
+            <option value="xor">XOR Cipher (Advanced)</option>
+            <option value="aes">AES Encryption (Advanced)</option>
+        </select>
+        <div id="keyInputContainer"></div>
+        <div class="buttons">
+            <button onclick="process('encrypt')">Encrypt</button>
+            <button onclick="process('decrypt')">Decrypt</button>
+            <button onclick="showInfo()">Info</button>
+            <button onclick="showTest()">Test</button>
+            <button class="file-button" onclick="document.getElementById('fileInput').click()">Upload File</button>
+            <input type="file" id="fileInput" accept=".txt">
+            <button onclick="downloadFile()">Download Result</button>
+        </div>
+        <div class="output" id="output">Output will appear here...</div>
+        <div id="infoBox" class="hidden"></div>
+        <div id="testBox" class="hidden"></div>
+    </div>
+
+    <script>
+        // Import crypto-js for AES encryption
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
+        document.head.appendChild(script);
+
+        let currentResult = '';
+
+        // Event listeners
+        document.getElementById('algorithm').addEventListener('change', updateKeyInput);
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        // Update key input based on selected algorithm
+        function updateKeyInput() {
+            const algorithm = document.getElementById('algorithm').value;
+            const container = document.getElementById('keyInputContainer');
+            
+            if (algorithm === 'caesar') {
+                container.innerHTML = '<input type="number" id="keyInput" class="password-input" placeholder="Shift value (1-25)" min="1" max="25" value="3">';
+            } else if (algorithm === 'vigenere' || algorithm === 'xor') {
+                container.innerHTML = '<input type="text" id="keyInput" class="password-input" placeholder="Enter key/password">';
+            } else if (algorithm === 'aes') {
+                container.innerHTML = `
+                    <input type="password" id="keyInput" class="password-input" placeholder="Enter password (min 8 characters)" minlength="8">
+                    <div class="key-info">🔒 AES uses your password to generate a secure encryption key. Use a strong password!</div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+
+        // Initialize key input on page load
+        updateKeyInput();
+
+        function process(action) {
+            const text = document.getElementById('inputText').value;
+            const algorithm = document.getElementById('algorithm').value;
+            const keyInput = document.getElementById('keyInput');
+            const key = keyInput ? keyInput.value : '';
+
+            if (!text) {
+                alert('Please enter some text to process!');
+                return;
+            }
+
+            try {
+                let result = '';
+                switch (algorithm) {
+                    case 'caesar':
+                        result = caesarCipher(text, parseInt(key) || 3, action === 'decrypt');
+                        break;
+                    case 'atbash':
+                        result = atbashCipher(text);
+                        break;
+                    case 'reverse':
+                        result = reverseText(text);
+                        break;
+                    case 'vigenere':
+                        if (!key) {
+                            alert('Please enter a key for Vigenère cipher!');
+                            return;
+                        }
+                        result = vigenereCipher(text, key, action === 'decrypt');
+                        break;
+                    case 'base64':
+                        result = action === 'encrypt' ? btoa(text) : atob(text);
+                        break;
+                    case 'xor':
+                        if (!key) {
+                            alert('Please enter a key for XOR cipher!');
+                            return;
+                        }
+                        result = xorCipher(text, key);
+                        break;
+                    case 'aes':
+                        if (!key || key.length < 8) {
+                            alert('Please enter a password with at least 8 characters for AES encryption!');
+                            return;
+                        }
+                        result = aesCipher(text, key, action === 'encrypt');
+                        break;
+                }
+                currentResult = result;
+                document.getElementById('output').textContent = result;
+            } catch (error) {
+                document.getElementById('output').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Cipher implementations
+        function caesarCipher(text, shift, decrypt) {
+            if (decrypt) shift = -shift;
+            return text.replace(/[a-zA-Z]/g, function(char) {
+                const start = char <= 'Z' ? 65 : 97;
+                return String.fromCharCode(((char.charCodeAt(0) - start + shift + 26) % 26) + start);
+            });
+        }
+
+        function atbashCipher(text) {
+            return text.replace(/[a-zA-Z]/g, function(char) {
+                if (char <= 'Z') {
+                    return String.fromCharCode(90 - (char.charCodeAt(0) - 65));
+                } else {
+                    return String.fromCharCode(122 - (char.charCodeAt(0) - 97));
+                }
+            });
+        }
+
+        function reverseText(text) {
+            return text.split('').reverse().join('');
+        }
+
+        function vigenereCipher(text, key, decrypt) {
+            key = key.toUpperCase();
+            let result = '';
+            let keyIndex = 0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (char.match(/[a-zA-Z]/)) {
+                    const start = char <= 'Z' ? 65 : 97;
+                    const keyShift = key[keyIndex % key.length].charCodeAt(0) - 65;
+                    const shift = decrypt ? -keyShift : keyShift;
+                    result += String.fromCharCode(((char.charCodeAt(0) - start + shift + 26) % 26) + start);
+                    keyIndex++;
+                } else {
+                    result += char;
+                }
+            }
+            return result;
+        }
+
+        function xorCipher(text, key) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        }
+
+        function aesCipher(text, password, encrypt) {
+            // Wait for crypto-js to load
+            if (typeof CryptoJS === 'undefined') {
+                throw new Error('Encryption library is still loading. Please try again in a moment.');
+            }
+            
+            if (encrypt) {
+                const encrypted = CryptoJS.AES.encrypt(text, password).toString();
+                return encrypted;
+            } else {
+                const decrypted = CryptoJS.AES.decrypt(text, password);
+                const originalText = decrypted.toString(CryptoJS.enc.Utf8);
+                if (!originalText) {
+                    throw new Error('Decryption failed. Check your password or encrypted text.');
+                }
+                return originalText;
+            }
+        }
+
+        function showInfo() {
+            const algorithm = document.getElementById('algorithm').value;
+            const infoBox = document.getElementById('infoBox');
+            const testBox = document.getElementById('testBox');
+            
+            testBox.classList.add('hidden');
+            infoBox.classList.remove('hidden');
+            
+            const info = {
+                caesar: '🏛️ Caesar Cipher: A simple substitution cipher where each letter is shifted by a fixed number of positions in the alphabet. Named after Julius Caesar.',
+                atbash: '🔤 Atbash Cipher: An ancient Hebrew cipher where A=Z, B=Y, C=X, etc. Each letter is replaced by its mirror position in the alphabet.',
+                reverse: '🔄 Reverse Text: Simply reverses the order of characters in the text. Easy to spot but can be combined with other methods.',
+                vigenere: '🗝️ Vigenère Cipher: Uses a keyword to create multiple Caesar ciphers. Much stronger than single Caesar cipher, was considered unbreakable for centuries.',
+                base64: '📦 Base64: Encoding method that converts binary data to text using 64 characters. Commonly used for data transmission, not encryption.',
+                xor: '⚡ XOR Cipher: Uses exclusive OR operation with a key. Strong when used with truly random keys, weak with short or predictable keys.',
+                aes: '🛡️ AES (Advanced Encryption Standard): Modern, military-grade encryption used worldwide. Extremely secure when used with strong passwords. Used by governments and banks.'
+            };
+            
+            infoBox.innerHTML = `<h3>Algorithm Information</h3><p>${info[algorithm]}</p>`;
+        }
+
+        function showTest() {
+            const algorithm = document.getElementById('algorithm').value;
+            const testBox = document.getElementById('testBox');
+            const infoBox = document.getElementById('infoBox');
+            
+            infoBox.classList.add('hidden');
+            testBox.classList.remove('hidden');
+            
+            const tests = {
+                caesar: 'Test Text: "HELLO" with shift 3 → "KHOOR"',
+                atbash: 'Test Text: "HELLO" → "SVOOL"',
+                reverse: 'Test Text: "HELLO" → "OLLEH"',
+                vigenere: 'Test Text: "HELLO" with key "KEY" → "RIJVS"',
+                base64: 'Test Text: "HELLO" → "SEVMTE8="',
+                xor: 'Test Text: "HELLO" with key "KEY" → (binary result varies)',
+                aes: 'Test Text: "HELLO" with password "mypassword" → (encrypted string varies each time)'
+            };
+            
+            testBox.innerHTML = `<h3>Test Example</h3><p>${tests[algorithm]}</p>`;
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'text/plain') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('inputText').value = e.target.result;
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please select a valid text file (.txt)');
+            }
+        }
+
+        function downloadFile() {
+            if (!currentResult) {
+                alert('No result to download. Please encrypt or decrypt some text first!');
+                return;
+            }
+            
+            const blob = new Blob([currentResult], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'crypto_result.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Enable drag and drop
+        const inputText = document.getElementById('inputText');
+        
+        inputText.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.style.backgroundColor = '#f0f8ff';
+        });
+        
+        inputText.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.style.backgroundColor = '';
+        });
+        
+        inputText.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.style.backgroundColor = '';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'text/plain') {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    inputText.value = event.target.result;
+                };
+                reader.readAsText(files[0]);
+            }
+        });
+    </script>
+</body>
+</html>
