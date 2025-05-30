@@ -23,6 +23,9 @@ function process(action) {
     case "xor":
       result = xorCipher(text, "K");
       break;
+    case "playfair":
+      result = action === "encrypt" ? playfairEncrypt(text, "KEYWORD") : playfairDecrypt(text, "KEYWORD");
+      break;
     default:
       result = "Unknown algorithm";
   }
@@ -71,6 +74,60 @@ function xorCipher(text, key) {
   return [...text].map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(0))).join('');
 }
 
+// --- PLAYFAIR CIPHER ---
+function playfairEncrypt(text, key) {
+  const matrix = generatePlayfairMatrix(key);
+  text = text.toUpperCase().replace(/[^A-Z]/g, "").replace(/J/g, "I");
+  let result = "";
+  let i = 0;
+  while (i < text.length) {
+    const a = text[i];
+    const b = (i + 1 < text.length && text[i] !== text[i + 1]) ? text[i + 1] : "X";
+    result += processPlayfairPair(a, b, matrix, true);
+    i += (a === b) ? 1 : 2;
+  }
+  return result;
+}
+function playfairDecrypt(text, key) {
+  const matrix = generatePlayfairMatrix(key);
+  let result = "";
+  for (let i = 0; i < text.length; i += 2) {
+    result += processPlayfairPair(text[i], text[i + 1], matrix, false);
+  }
+  return result;
+}
+function generatePlayfairMatrix(key) {
+  key = key.toUpperCase().replace(/[^A-Z]/g, "").replace(/J/g, "I");
+  let seen = {};
+  let matrix = [];
+  for (const c of key + "ABCDEFGHIKLMNOPQRSTUVWXYZ") {
+    if (!seen[c]) {
+      seen[c] = true;
+      matrix.push(c);
+    }
+  }
+  return matrix;
+}
+function processPlayfairPair(a, b, matrix, encrypt) {
+  const idxA = matrix.indexOf(a);
+  const idxB = matrix.indexOf(b);
+  const rowA = Math.floor(idxA / 5), colA = idxA % 5;
+  const rowB = Math.floor(idxB / 5), colB = idxB % 5;
+  let newA, newB;
+
+  if (rowA === rowB) {
+    newA = matrix[rowA * 5 + (colA + (encrypt ? 1 : 4)) % 5];
+    newB = matrix[rowB * 5 + (colB + (encrypt ? 1 : 4)) % 5];
+  } else if (colA === colB) {
+    newA = matrix[((rowA + (encrypt ? 1 : 4)) % 5) * 5 + colA];
+    newB = matrix[((rowB + (encrypt ? 1 : 4)) % 5) * 5 + colB];
+  } else {
+    newA = matrix[rowA * 5 + colB];
+    newB = matrix[rowB * 5 + colA];
+  }
+  return newA + newB;
+}
+
 // --- FILE HANDLING ---
 document.getElementById("fileInput").addEventListener("change", function () {
   const file = this.files[0];
@@ -96,12 +153,12 @@ function showInfo() {
 <b>Reverse Text:</b> Simply reverses the characters.<br>
 <b>Vigenère Cipher:</b> Uses a keyword to shift letters. Stronger than Caesar.<br>
 <b>Base64:</b> Encodes binary data into readable text. Not real encryption.<br>
-<b>XOR Cipher:</b> Uses a key to flip bits. Strong if used correctly.`;
+<b>XOR Cipher:</b> Uses a key to flip bits. Strong if used correctly.<br>
+<b>Playfair Cipher:</b> Encrypts digraphs (pairs of letters) using a 5x5 matrix. Advanced classical cipher.<br>`;
   document.getElementById("infoBox").innerHTML = info;
   document.getElementById("infoBox").classList.remove("hidden");
   document.getElementById("testBox").classList.add("hidden");
 }
-
 function showTest() {
   const questions = [
     { q: "Caesar cipher shifts letters?", a: true },
@@ -109,7 +166,8 @@ function showTest() {
     { q: "Reverse text is unbreakable encryption?", a: false },
     { q: "Vigenère uses a keyword?", a: true },
     { q: "Base64 is secure encryption?", a: false },
-    { q: "XOR cipher can use a key?", a: true }
+    { q: "XOR cipher can use a key?", a: true },
+    { q: "Playfair uses digraphs?", a: true }
   ];
   const html = questions.map((q, i) =>
     `<div><b>Q${i + 1}:</b> ${q.q}<br><button onclick="alert('${q.a ? 'Correct!' : 'Wrong!'}')">True</button> <button onclick="alert('${!q.a ? 'Correct!' : 'Wrong!'}')">False</button></div>`
